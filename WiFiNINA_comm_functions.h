@@ -5,7 +5,7 @@
 class valveTask {
   public:
     const char *valveTag;  // TODO: has to be const?
-//    int pin;
+    int pin;
     int volume;
     boolean newTask = true;
     int taskStart;
@@ -14,15 +14,23 @@ class valveTask {
 // Declaration of structures. First for the sensor reading.
 // The first struct has the sensor name and its measured value
 struct sensorReading {
-  const char *tag;  // TODO: has to be const?
+  const char *tag;
   int value;
 };
+
+
+struct valvePosition {
+  const char *tag;
+  bool valvePosition;
+};
+
 
 // The second struct has metadata (time of measurement, and physical location). It also has the sensorReadingg struct as a nested array.
 struct dataPacket {
   char area[12];
   int timestamp;
-  sensorReading data[3];  // number of sensors to measure
+  sensorReading analog[7];  // number of sensors to include
+  valvePosition valves[3];  // number of valves to include
 };
 
 

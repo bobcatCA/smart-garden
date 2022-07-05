@@ -1,2 +1,8 @@
 # Ignore
+.idea/
+
 arduino_secrets.h
+
+ *.log
+*.db
+*.xml

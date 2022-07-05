@@ -25,6 +25,8 @@
 boolean b_alreadyConnected = false; // Initialize to false in case the client was connected previously
 int status = WL_IDLE_STATUS;  // Initialize status to idle. Will change after calling WiFi.begin()
 WiFiServer server(7777);
+WiFiUDP ntpUDP;
+NTPClient timeClient(ntpUDP, "pool.ntp.org");  // Shouldn't need offset, seems to return local time.
 LinkedList<valveTask*> currentValveTasks = LinkedList<valveTask*>();  //Initialize current (empty) queue of watering tasks
 LinkedList<valveTask*> *p_currentValveTasks = &currentValveTasks;  // Make a pointer for the task list
 
@@ -39,6 +41,8 @@ void setup() {
   status = connectWiFiNetwork(status);
   server.begin();
   printWifiStatus();
+
+  timeClient.begin();  // Start the time client
 }
 
 
@@ -57,14 +61,8 @@ void loop() {
     // For first connection, clear buffer and send acknowledgement message
     if (!b_alreadyConnected) {
       client.flush();
-      client.println("Hello, client!");
       b_alreadyConnected = true;
     }
-
-    // Declare and start NTP Client to get timestamp
-    WiFiUDP ntpUDP;
-    NTPClient timeClient(ntpUDP, "pool.ntp.org");  // Shouldn't need offset, seems to return local time.
-    timeClient.begin();  // Start the time client
 
     // Read message from client - this will build watering tasks into the linked queue.
     dataserverReadClient(client, p_currentValveTasks);

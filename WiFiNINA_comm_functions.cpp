@@ -25,12 +25,10 @@ class wateringValve {
     // Open or close
     void valveOpen() {
       digitalWrite(valvePin, HIGH);
-      Serial.println("valve open");
     }
 
     void valveClose() {
       digitalWrite(valvePin, LOW);
-      Serial.println("valve closed");
     }
 };
 
@@ -46,7 +44,7 @@ void dataserverReadClient(WiFiClient client, LinkedList<valveTask*> *listOfTasks
   // about which valves are requested to open and for how long.
 
   // Initiate empty char, and store all incoming characters in it.
-  char result[127];
+  char result[255];
   int charCount = 0;
   while (client.available()) {
     // Read the next character from the client, and store it in the ith element of the result array.
@@ -58,11 +56,12 @@ void dataserverReadClient(WiFiClient client, LinkedList<valveTask*> *listOfTasks
   Serial.println(result);  // TODO: delete this debug line
 
   // Initialize empty Json document, and verify that deserialization process worked.
-  StaticJsonDocument<1028> json_doc;
+  StaticJsonDocument<270> json_doc;
   DeserializationError err = deserializeJson(json_doc, result);
 
   if (err) {
-    Serial.println("Json parsing failed");
+    //    Serial.println("Json parsing failed");
+    //    Serial.println(err.f_str());
     return;
   }
 
@@ -73,16 +72,21 @@ void dataserverReadClient(WiFiClient client, LinkedList<valveTask*> *listOfTasks
   long num_tasks = json_doc[0]["task_count"];
   const char* units = json_doc[0]["units"];
 
+  if (num_tasks == 0) {
+    //    Serial.println("no tasks!");
+    return;
+  }
+
   // Loop through the second part of the json document, where the actual tasks are
   for  (int i = 0; i < num_tasks; i++) {
     const char* valve_tag = json_doc[1]["tags"][i];
-    //    int pin = json_doc[1]["pins"][i];
+    int pin = json_doc[1]["pins"][i];
     long water_volume = json_doc[1]["volumes"][i];
 
     // Use the valve tag and volume to build new tasks...
     valveTask *task = new valveTask();
     task->valveTag = valve_tag;
-    //    task->pin = pin;
+    task->pin = pin;
     task->volume = water_volume;
 
     // ...and add it to the queue
@@ -100,22 +104,31 @@ void sendJson(dataPacket data, WiFiClient client)  {
   // WiFiClient client: WifiNina WiFiClient object. basically a client that has sent a request and is connected to the server
 
   // Initialize Json document of size 255, assign metadata from dataPacket
-  StaticJsonDocument<255> json_doc;  // TODO: optimize size, or use dynamic?
+  StaticJsonDocument<511> json_doc;  // TODO: optimize size, or use dynamic?
   json_doc["area"] = data.area;
   json_doc["timestamp"] = data.timestamp;
 
-  // Add nested arrays to hold sensor readings and metadata
-  JsonArray tags = json_doc.createNestedArray("tags");
-  JsonArray values = json_doc.createNestedArray("values");
+  // Add nested arrays to hold sensor readings, valve positions and metadata
+  JsonArray sensors = json_doc.createNestedArray("sensors");
+  JsonArray readings = json_doc.createNestedArray("readings");
+  JsonArray valves = json_doc.createNestedArray("valves");
+  JsonArray valve_positions = json_doc.createNestedArray("valve_positions");
 
   // Store sensor tags and readings in the Json document
-  int numSensors = 3;  // TODO: update to non hard-coded
+  int numSensors = 7;  // TODO: update to non hard-coded
   for (int i = 0; i < numSensors; i++) {
-    values.add(data.data[i].value);
-    tags.add(data.data[i].tag);
+    sensors.add(data.analog[i].tag);
+    readings.add(data.analog[i].value);
   }
+
+  // Store valve tags and readings in the Json document
+  int numValves = 3;  // TODO: update to non hard-coded
+  for (int i = 0; i < numValves; i++) {
+    valves.add(data.valves[i].tag);
+    valve_positions.add(data.valves[i].valvePosition);
+  }
+
   serializeJson(json_doc, client);  // Serialize the data and send to client
-  serializeJson(json_doc, Serial);  // TODO: delete debugging line
 }
 
 
@@ -125,15 +138,13 @@ void performWateringTasks(LinkedList<valveTask*> *listOfTasks) {
 
   int numTasks = listOfTasks->size();
   if (numTasks == 0) {
-    Serial.println("no tasks");
     return;
   }
 
   // Initialize a task that is the first one in the queue.
   valveTask *task;
   task = listOfTasks->get(0);
-  wateringValve row(6);  // TODO: pass the pin # in from json (not working yet)
-  //  wateringValve row(task->pin);
+  wateringValve row(task->pin);
 
   // Go into if statement only if the task has not yet been started
   if (task->newTask == true) {
@@ -154,13 +165,26 @@ void performWateringTasks(LinkedList<valveTask*> *listOfTasks) {
 
 dataPacket getSensorReadings(int time_stamp) {
   // Compiles the current moisture readings into a data structure, and returns that data structure
-
-  // int time_stamp: time stamp to mark when the data was recorded.
-
   // Get individual sensor readings, and put them into a dataPacket
-  struct sensorReading reading1 = {"Row_1", 13};
-  struct sensorReading reading2 = {"Row_2", 19};
-  struct sensorReading reading3 = {"Row_2", 19};
-  struct dataPacket packet = {"greenhouse", time_stamp, reading1, reading2, reading3};  // Compile data into larger struct
+  // Row 1
+  struct sensorReading reading1a = {"moisture_1", 13};
+  struct sensorReading reading1b = {"temp_1", 13};
+  struct valvePosition valve1 = {"valve_1", true};
+
+  // Row 2
+  struct sensorReading reading2a = {"moisture_2", 13};
+  struct sensorReading reading2b = {"temp_2", 13};
+  struct valvePosition valve2 = {"valve_2", true};
+
+  // Row 3
+  struct sensorReading reading3a = {"moisture_3", 13};
+  struct sensorReading reading3b = {"temp_3", 13};
+  struct valvePosition valve3 = {"valve_3", true};
+
+  // Water volume
+  struct sensorReading waterVolume = {"water_volume", 283};
+
+  // Compile all sensor values into a packet, and return
+  struct dataPacket packet = {"greenhouse", time_stamp, reading1a, reading1b, reading2a, reading2b, reading3a, reading3b, waterVolume, valve1, valve2, valve3};
   return packet;
 }
