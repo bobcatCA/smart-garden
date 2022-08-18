@@ -64,15 +64,16 @@ void loop() {
       b_alreadyConnected = true;
     }
 
-    // Read message from client - this will build watering tasks into the linked queue.
-    dataserverReadClient(client, p_currentValveTasks);
-
     // Assemble the Json object with sensor readings and timestamp
     timeClient.update();
     int timeNow = timeClient.getEpochTime();  // Current timestamp, seems to correct for local time OK
     dataPacket packet = getSensorReadings(timeNow);  // Returns structure containing moisture readings
     sendJson(packet, client);  // Turn the data packet into Json format, and send to client. This is where the LL gets mixed up.
     client.stop();  // Stop, so we can wait for the next request from client
+
+    
+    // Read message from client - this will build watering tasks into the linked queue.
+    dataserverReadClient(client, p_currentValveTasks);
   }
   performWateringTasks(p_currentValveTasks);  // We are passing pointer, so should empty the struct as all tasks will have finished
   delay(2000);

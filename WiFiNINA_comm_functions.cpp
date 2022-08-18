@@ -87,7 +87,7 @@ void dataserverReadClient(WiFiClient client, LinkedList<valveTask*> *listOfTasks
     valveTask *task = new valveTask();
     task->valveTag = valve_tag;
     task->pin = pin;
-    task->volume = water_volume;
+    task->volume = water_volume * 1000;  // Convert seconds to milliseconds
 
     // ...and add it to the queue
     listOfTasks->add(task);
@@ -182,7 +182,7 @@ dataPacket getSensorReadings(int time_stamp) {
   struct valvePosition valve3 = {"valve_3", true};
 
   // Water volume
-  struct sensorReading waterVolume = {"water_volume", 283};
+  struct sensorReading waterVolume = {"water_volume", 999};
 
   // Compile all sensor values into a packet, and return
   struct dataPacket packet = {"greenhouse", time_stamp, reading1a, reading1b, reading2a, reading2b, reading3a, reading3b, waterVolume, valve1, valve2, valve3};

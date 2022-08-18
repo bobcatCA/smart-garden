@@ -2,9 +2,11 @@
 
 # Library imports
 import json
+import pandas as pd
 import socket
 import time
 import sqlite3
+
 
 def receive_data(socket_object):
     """
@@ -34,7 +36,7 @@ def receive_data(socket_object):
 def connect_to_server(address):
     """
     :param address: IP address and port
-    :return: None
+    :return: data_decoded: decoded data string from the Arduino server
     """
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
 
@@ -42,16 +44,17 @@ def connect_to_server(address):
             # Try connecting to the server address....
             s.connect(address)
 
-            # If connection successful, get watering tasks and make into JSON stirng...
-            watering_tasks = get_watering_tasks()
+            # FIRST, listen for moisture data from the server
+            data = receive_data(s)
+            data_decoded = json.loads(data)
+
+            # SECOND, use these tasks data to build watering tasks and make into JSON stirng...
+            watering_tasks = get_watering_tasks(data_decoded)
             json_string = json.dumps(watering_tasks, separators=(',', ':'))
             print(json_string)
             json_bytes = json_string.encode('utf-8')
             s.sendall(json_bytes)  # ...and send the entire string (watering instructions) to the server
 
-            # Now, receive the sensor data from the server
-            data = receive_data(s)
-            data_decoded = json.loads(data)
 
         except Exception as connectException:
             # If unsuccessful (usually in connecting to server), write data returned to NONE and exit functoin
@@ -61,12 +64,16 @@ def connect_to_server(address):
     return data_decoded
 
 
-def get_watering_tasks():
+def get_watering_tasks(moisture_data):
     """
     :return: tasks: a structure containing all the tasks with tags and volumes requested
     """
 
-    # tasks = []
+    optimal_moisture = 35  # TODO: Make dynamic based on upcoming weather
+    optimal_volume = 3
+    tag_moistures = moisture_data["moisture"]
+    water_need = tag_moistures < optimal_moisture
+    # Need to replace "TRUE" boolean with optimal water volume
 
     tasks = [{
         # First part of structure with Metadata (name, ID, units, etc.) to be sent as first part of json structure
@@ -76,9 +83,10 @@ def get_watering_tasks():
     }, {
         # Second part of structure with rows, valve control pins, and volumes requested.
         "tags": ["row_1", "row_2", "row_3"],
-        "pins": [6, 7, 8],
-        "volumes": [3000, 6000, 9000]
+        "pins": [6, 7, 8],  # What pins on the Server correspond to the valves
+        "volumes": water_need  # Currently using time of valve open as proxy for volume. Measured in seconds.
     }]
+
     return tasks
 
 
@@ -114,7 +122,7 @@ ip = "192.168.0.17"
 port = 7777
 address = (ip, port)
 database = 'garden_data.db'
-json_sensors = connect_to_server(address)
+json_sensors = connect_to_server(address)  # Returns decoded data from Arduino server
 
 if json_sensors:
     save_to_database(database, json_sensors)
