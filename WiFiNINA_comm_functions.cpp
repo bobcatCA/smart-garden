@@ -97,6 +97,7 @@ void dataserverReadClient(WiFiClient client, LinkedList<valveTask*> *listOfTasks
 
 void sendJson(dataPacket data, WiFiClient client)  {
 
+
   // Given a specific data array and a wifinina client object,
   // the function will reformat the data into Json format, serialize it, and send it via the client object.
 
@@ -105,28 +106,50 @@ void sendJson(dataPacket data, WiFiClient client)  {
 
   // Initialize Json document of size 255, assign metadata from dataPacket
   StaticJsonDocument<511> json_doc;  // TODO: optimize size, or use dynamic?
-  json_doc["area"] = data.area;
   json_doc["timestamp"] = data.timestamp;
 
+//  JsonArray location = json_doc.createNestedArray("location");
+//  JsonArray sensorTags = json_doc.createNestedArray("sensorTags");
+//  JsonArray sensorReadings = json_doc.createNestedArray("sensorReadings");
+
   // Add nested arrays to hold sensor readings, valve positions and metadata
-  JsonArray sensors = json_doc.createNestedArray("sensors");
-  JsonArray readings = json_doc.createNestedArray("readings");
-  JsonArray valves = json_doc.createNestedArray("valves");
-  JsonArray valve_positions = json_doc.createNestedArray("valve_positions");
+  JsonArray entry = json_doc.createNestedArray("entry");
+  int numAreas = 3;  // TODO: update to non hard-coded
+  int numSensors = 2;  // TODO: update to non hard-coded
+  for (int i = 0; i < numAreas; i++) {
+    JsonObject location = entry.createNestedObject();
+    location["area"] = data.areas[i].area;
+    JsonArray sensorData = location.createNestedArray("data");
+    for (int j = 0; j < numSensors; j++) {
+      sensorData.add(data.areas[i].sensors[j].type);
+      sensorData.add(data.areas[i].sensors[j].value);
+//      sensorData["type"] = data.areas[i].sensors[j].type;
+//      sensorData["value"] = data.areas[i].sensors[j].value;
+//
+//      location.add(data.areas[i].area);
+//      sensorTags.add(data.areas[i].sensors[j].type);
+//      sensorReadings.add(data.areas[i].sensors[j].value);
+      }
+    }
+  
+  //JsonArray sensors = json_doc.createNestedArray("sensors");
+  //JsonArray readings = json_doc.createNestedArray("readings");
+  //JsonArray readings = json_doc.createNestedArray("readings");
+  //JsonArray valve_positions = json_doc.createNestedArray("valve_positions");
 
   // Store sensor tags and readings in the Json document
-  int numSensors = 7;  // TODO: update to non hard-coded
-  for (int i = 0; i < numSensors; i++) {
-    sensors.add(data.analog[i].tag);
-    readings.add(data.analog[i].value);
-  }
+//  int numSensors = 2;  // TODO: update to non hard-coded
+  //for (int i = 0; i < numSensors; i++) {
+    //sensors.add(data.sensors[i].type);
+    //readings.add(data.sensors[i].value);
+    //}
 
   // Store valve tags and readings in the Json document
-  int numValves = 3;  // TODO: update to non hard-coded
-  for (int i = 0; i < numValves; i++) {
-    valves.add(data.valves[i].tag);
-    valve_positions.add(data.valves[i].valvePosition);
-  }
+  //int numValves = 1;  // TODO: update to non hard-coded
+  //for (int i = 0; i < numValves; i++) {
+    //valves.add(data.valves.tag);
+    //valve_positions.add(data.valves.valvePosition);
+  //}
 
   serializeJson(json_doc, client);  // Serialize the data and send to client
 }
@@ -167,24 +190,28 @@ dataPacket getSensorReadings(int time_stamp) {
   // Compiles the current moisture readings into a data structure, and returns that data structure
   // Get individual sensor readings, and put them into a dataPacket
   // Row 1
-  struct sensorReading reading1a = {"moisture_1", 13};
-  struct sensorReading reading1b = {"temp_1", 13};
-  struct valvePosition valve1 = {"valve_1", true};
+  struct sensorReading moisture1 = {"moisture", 13};
+  struct sensorReading temp1 = {"temp", 35};
+  struct valvePosition valve1 = {"valve", true};
 
-  // Row 2
-  struct sensorReading reading2a = {"moisture_2", 13};
-  struct sensorReading reading2b = {"temp_2", 13};
-  struct valvePosition valve2 = {"valve_2", true};
+  struct sensorReading moisture2 = {"moisture", 25};
+  struct sensorReading temp2 = {"temp", 32};
+  struct valvePosition valve2 = {"valve", true};
 
-  // Row 3
-  struct sensorReading reading3a = {"moisture_3", 13};
-  struct sensorReading reading3b = {"temp_3", 13};
-  struct valvePosition valve3 = {"valve_3", true};
+  struct sensorReading moisture3 = {"moisture", 48};
+  struct sensorReading temp3 = {"temp", 41};
+  struct valvePosition valve3 = {"valve", true};
 
   // Water volume
-  struct sensorReading waterVolume = {"water_volume", 999};
+  // struct sensorReading waterVolume = {"water_volume", 999};
 
   // Compile all sensor values into a packet, and return
-  struct dataPacket packet = {"greenhouse", time_stamp, reading1a, reading1b, reading2a, reading2b, reading3a, reading3b, waterVolume, valve1, valve2, valve3};
-  return packet;
+  struct subPacket packet1 = {"back", moisture1, temp1};
+  struct subPacket packet2 = {"front", moisture2, temp2};
+  struct subPacket packet3 = {"greenhouse", moisture3, temp3};
+  
+  struct dataPacket totalPacket = {time_stamp, packet1, packet2, packet3};
+  return totalPacket;
+
+  //return packet1;
 }

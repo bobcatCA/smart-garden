@@ -18,7 +18,7 @@ def receive_data(socket_object):
     # Attempt to receive data from the socket object (server connection)
     try:
         while True:
-            data = socket_object.recv(56)  # TODO: optimize memory allocation
+            data = socket_object.recv(8)  # TODO: optimize memory allocation
             if not data:
                 break
             buffer += data
@@ -43,10 +43,12 @@ def connect_to_server(address):
         try:
             # Try connecting to the server address....
             s.connect(address)
+            s.sendall(b'pi_control_connected')
 
             # FIRST, listen for moisture data from the server
             data = receive_data(s)
             data_decoded = json.loads(data)
+            print(data_decoded)
 
             # SECOND, use these tasks data to build watering tasks and make into JSON stirng...
             watering_tasks = get_watering_tasks(data_decoded)
@@ -71,8 +73,8 @@ def get_watering_tasks(moisture_data):
 
     optimal_moisture = 35  # TODO: Make dynamic based on upcoming weather
     optimal_volume = 3
-    tag_moistures = moisture_data["moisture"]
-    water_need = tag_moistures < optimal_moisture
+    tag_moisture = moisture_data['readings'][moisture_data['sensors'].index('moisture')]
+    water_need = tag_moisture < optimal_moisture
     # Need to replace "TRUE" boolean with optimal water volume
 
     tasks = [{
@@ -84,7 +86,7 @@ def get_watering_tasks(moisture_data):
         # Second part of structure with rows, valve control pins, and volumes requested.
         "tags": ["row_1", "row_2", "row_3"],
         "pins": [6, 7, 8],  # What pins on the Server correspond to the valves
-        "volumes": water_need  # Currently using time of valve open as proxy for volume. Measured in seconds.
+        "volumes": [3, 3, 3]  # Currently using time of valve open as proxy for volume. Measured in seconds.
     }]
 
     return tasks
@@ -118,7 +120,7 @@ def save_to_database(database_name, json_decoded):
 
 
 # Find Connect to IP and exchange information
-ip = "192.168.0.17"
+ip = "192.168.0.19"
 port = 7777
 address = (ip, port)
 database = 'garden_data.db'
