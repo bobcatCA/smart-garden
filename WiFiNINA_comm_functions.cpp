@@ -108,10 +108,6 @@ void sendJson(dataPacket data, WiFiClient client)  {
   StaticJsonDocument<511> json_doc;  // TODO: optimize size, or use dynamic?
   json_doc["timestamp"] = data.timestamp;
 
-//  JsonArray location = json_doc.createNestedArray("location");
-//  JsonArray sensorTags = json_doc.createNestedArray("sensorTags");
-//  JsonArray sensorReadings = json_doc.createNestedArray("sensorReadings");
-
   // Add nested arrays to hold sensor readings, valve positions and metadata
   JsonArray entry = json_doc.createNestedArray("entry");
   int numAreas = 3;  // TODO: update to non hard-coded
@@ -123,33 +119,19 @@ void sendJson(dataPacket data, WiFiClient client)  {
     for (int j = 0; j < numSensors; j++) {
       sensorData.add(data.areas[i].sensors[j].type);
       sensorData.add(data.areas[i].sensors[j].value);
-//      sensorData["type"] = data.areas[i].sensors[j].type;
-//      sensorData["value"] = data.areas[i].sensors[j].value;
-//
-//      location.add(data.areas[i].area);
-//      sensorTags.add(data.areas[i].sensors[j].type);
-//      sensorReadings.add(data.areas[i].sensors[j].value);
       }
     }
-  
-  //JsonArray sensors = json_doc.createNestedArray("sensors");
-  //JsonArray readings = json_doc.createNestedArray("readings");
-  //JsonArray readings = json_doc.createNestedArray("readings");
-  //JsonArray valve_positions = json_doc.createNestedArray("valve_positions");
-
-  // Store sensor tags and readings in the Json document
-//  int numSensors = 2;  // TODO: update to non hard-coded
-  //for (int i = 0; i < numSensors; i++) {
-    //sensors.add(data.sensors[i].type);
-    //readings.add(data.sensors[i].value);
-    //}
-
-  // Store valve tags and readings in the Json document
-  //int numValves = 1;  // TODO: update to non hard-coded
-  //for (int i = 0; i < numValves; i++) {
-    //valves.add(data.valves.tag);
-    //valve_positions.add(data.valves.valvePosition);
-  //}
+    // Final Format:
+    // {"timestamp": int;
+    //    "entry" {
+    //      location: string;
+    //      sensorData{
+    //        str: sensorType
+    //        value: int
+    //          }
+    //        }
+    //     "entry" ....etc
+    //    }
 
   serializeJson(json_doc, client);  // Serialize the data and send to client
 }
