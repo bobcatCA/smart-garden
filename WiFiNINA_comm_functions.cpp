@@ -176,10 +176,12 @@ dataPacket getSensorReadings(int time_stamp) {
   struct sensorReading temp1 = {"temp", 35};
   struct valvePosition valve1 = {"valve", true};
 
+  // Area 2
   struct sensorReading moisture2 = {"moisture", 25};
   struct sensorReading temp2 = {"temp", 32};
   struct valvePosition valve2 = {"valve", true};
 
+  // Area 3
   struct sensorReading moisture3 = {"moisture", 48};
   struct sensorReading temp3 = {"temp", 41};
   struct valvePosition valve3 = {"valve", true};
@@ -194,6 +196,4 @@ dataPacket getSensorReadings(int time_stamp) {
   
   struct dataPacket totalPacket = {time_stamp, packet1, packet2, packet3};
   return totalPacket;
-
-  //return packet1;
 }
